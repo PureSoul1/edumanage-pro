@@ -70,17 +70,53 @@ function mapAlert(a) { return { id:a.id, type:a.alert_type, message:a.message, r
 // AUTHENTICATION
 // ═══════════════════════════════════════════════════════
 async function signInWithGoogle() { const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } }); if (error) Toast.error('Google Sign-in Failed', error.message); }
+
+function toggleAuthPanel(type) {
+  if(type === 'signup') {
+    U.el('loginFormPanel').style.display = 'none';
+    U.el('signupFormPanel').style.display = 'block';
+  } else {
+    U.el('signupFormPanel').style.display = 'none';
+    U.el('loginFormPanel').style.display = 'block';
+  }
+  U.el('loginError').style.display = 'none';
+}
+
 async function handleLogin(e) {
   e.preventDefault(); const btn = U.el('loginBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
   try { const { data, error } = await sb.auth.signInWithPassword({ email: U.el('loginEmail').value, password: U.el('loginPassword').value }); if (error) throw error; S.user = data.user; await initApp(); }
   catch (err) { U.el('loginError').textContent = '⚠️ ' + err.message; U.el('loginError').style.display = 'block'; }
   finally { btn.disabled = false; btn.textContent = 'Sign In'; }
 }
-async function handleSignup() {
-  const email = prompt("Enter email:"); const pass = prompt("Enter password (min 6 chars):"); const name = prompt("Your Name:"); const school = prompt("School Name:");
-  if(!email||!pass) return; const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-  if (error) { Toast.error(error.message); return; } await sb.from('schools').insert({ name: school, owner_id: data.user.id }); Toast.success('Account created! Check email to verify.');
+
+async function handleSignup(e) {
+  e.preventDefault();
+  const btn = U.el('signupBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  const email = U.el('signupEmail').value.trim();
+  const password = U.el('signupPassword').value;
+  const name = U.el('signupName').value.trim();
+  const school = U.el('signupSchool').value.trim();
+
+  try {
+    // 1. Create Auth User
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    if (error) throw error;
+
+    // 2. Create School & Membership
+    if (data.user) {
+      const { data: schoolData } = await sb.from('schools').insert({ name: school, owner_id: data.user.id }).select().single();
+      if (schoolData) {
+        await sb.from('school_members').insert({ school_id: schoolData.id, user_id: data.user.id, role: 'admin', accepted_at: new Date().toISOString() });
+      }
+    }
+    
+    Toast.success('Account Created!', 'Please Sign In now with your credentials.');
+    toggleAuthPanel('login'); // Switch back to login form
+  } catch (err) {
+    U.el('loginError').textContent = '⚠️ ' + err.message; U.el('loginError').style.display = 'block';
+  } finally { btn.disabled = false; btn.textContent = 'Create Account'; }
 }
+
 async function handleLogout() { const ok = await showConfirm('Sign Out', 'Are you sure?', '👋', false); if (!ok) return; await sb.auth.signOut(); location.reload(); }
 
 // ── SESSION & INIT ──
@@ -88,9 +124,18 @@ async function initAuth() {
   const { data: { session } } = await sb.auth.getSession(); if (session) { S.user = session.user; await initApp(); }
   sb.auth.onAuthStateChange(async (event, session) => { if (event === 'SIGNED_IN' && session) { S.user = session.user; await initApp(); } else if (event === 'SIGNED_OUT') { U.el('loginPage').style.display = 'flex'; U.el('appPage').classList.remove('active'); } });
 }
+
 async function initApp() {
+  // Check for school membership
   const { data: membership } = await sb.from('school_members').select('school_id, role').eq('user_id', S.user.id).single();
-  if (!membership) { Toast.error('No school found'); return; } S.schoolId = membership.school_id; S.role = membership.role;
+  
+  if (!membership) {
+    // No school found — show setup screen instead of error
+    showSchoolSetup();
+    return;
+  }
+  
+  S.schoolId = membership.school_id; S.role = membership.role;
   const { data: school } = await sb.from('schools').select('*').eq('id', S.schoolId).single();
   if (school) S.settings = { schoolName: school.name, academicYear: school.academic_year, phone: school.phone, address: school.address, board: school.board };
   const name = S.user.user_metadata?.full_name || S.user.email.split('@')[0];
@@ -101,6 +146,87 @@ async function initApp() {
   U.el('loginPage').style.display = 'none'; U.el('appPage').classList.add('active');
   setupRealtime(); showSection('dashboard'); Toast.success('Welcome back!', name);
 }
+
+// ── SCHOOL SETUP (First time users) ──
+function showSchoolSetup() {
+  const name = S.user.user_metadata?.full_name || S.user.email.split('@')[0];
+  U.el('loginPage').style.display = 'none';
+  U.el('appPage').classList.add('active');
+  
+  const area = U.el('contentArea');
+  area.innerHTML = `
+    <div class="section active" style="max-width:500px;margin:60px auto;text-align:center">
+      <div style="font-size:64px;margin-bottom:16px">🏫</div>
+      <div class="section-title" style="margin-bottom:8px">Welcome, ${U.esc(name)}!</div>
+      <p style="color:var(--text3);margin-bottom:28px;font-size:15px">Set up your school to get started with EduManage Pro.</p>
+      <div class="card" style="text-align:left">
+        <div class="card-body">
+          <div class="form-group"><label class="form-label">School Name *</label><input class="form-control" id="setupSchoolName" placeholder="e.g. Sunrise Public School"/></div>
+          <div class="form-group"><label class="form-label">Academic Year</label><input class="form-control" id="setupYear" value="2024-25"/></div>
+          <div class="form-group"><label class="form-label">Board</label><select class="form-control" id="setupBoard"><option>CBSE</option><option>ICSE</option><option>UP Board</option><option>Other</option></select></div>
+          <button class="btn btn-primary w-full" style="padding:13px;font-size:15px" onclick="completeSchoolSetup()">🚀 Create & Enter Dashboard</button>
+        </div>
+      </div>
+    </div>`;
+  
+  // Hide sidebar stuff until setup is done
+  U.el('sidebarSchoolName').textContent = 'Setting up...';
+}
+
+async function completeSchoolSetup() {
+  const schoolName = U.el('setupSchoolName').value.trim();
+  if (!schoolName) { Toast.warning('Enter school name'); return; }
+  
+  try {
+    // 1. Create School
+    const { data: school, error: schoolErr } = await sb.from('schools').insert({
+      name: schoolName,
+      academic_year: U.el('setupYear').value.trim() || '2024-25',
+      board: U.el('setupBoard').value,
+      owner_id: S.user.id
+    }).select().single();
+    
+    if (schoolErr) throw schoolErr;
+    
+    // 2. Create Membership
+    const { error: memberErr } = await sb.from('school_members').insert({
+      school_id: school.id,
+      user_id: S.user.id,
+      role: 'admin',
+      accepted_at: new Date().toISOString()
+    });
+    
+    if (memberErr) throw memberErr;
+    
+    // 3. Seed default fee structure for this school
+    const feeInserts = [];
+    Array.from({length:12}, (_,i) => String(i+1)).forEach(cls => {
+      [
+        { key: 'tuition', label: 'Tuition Fee', amt: 3000, en: true, ao: true },
+        { key: 'computer', label: 'Computer Lab Fee', amt: 200, en: true, ao: false },
+        { key: 'science', label: 'Science Lab Fee', amt: 150, en: false, ao: false },
+        { key: 'sports', label: 'Sports Fee', amt: 100, en: true, ao: false },
+        { key: 'library', label: 'Library Fee', amt: 50, en: true, ao: false },
+        { key: 'exam', label: 'Exam Fee', amt: 100, en: false, ao: false },
+        { key: 'development', label: 'Development Fund', amt: 100, en: true, ao: false },
+        { key: 'conveyance', label: 'Conveyance', amt: 0, en: false, ao: false },
+      ].forEach(comp => {
+        feeInserts.push({ school_id: school.id, class_name: cls, component_key: comp.key, component_label: comp.label, amount: comp.amt, enabled: comp.en, always_on: comp.ao });
+      });
+    });
+    await sb.from('fee_structures').insert(feeInserts);
+    
+    Toast.success('School Created!', 'Welcome to EduManage Pro');
+    
+    // 4. Re-initialize app
+    await initApp();
+    
+  } catch (err) {
+    Toast.error('Setup Failed', err.message);
+    console.error(err);
+  }
+}
+
 function setupRealtime() {
   sb.channel('school-updates').on('postgres_changes', { event: '*', schema: 'public', table: 'students', filter: `school_id=eq.${S.schoolId}` }, () => loadStudents())
   .on('postgres_changes', { event: '*', schema: 'public', table: 'fee_payments', filter: `school_id=eq.${S.schoolId}` }, () => loadFees()).subscribe();
