@@ -1,0 +1,9 @@
+name = "edumanage-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[vars]
+ENVIRONMENT = "production"
+ALLOWED_ORIGIN = "https://edumanage.agenticfoxlabs.com"
+
+# Set secrets via CLI: wrangler secret put SUPABASE_URL etc.
