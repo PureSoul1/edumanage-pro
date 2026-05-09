@@ -5,24 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>EduManage Pro — Enterprise School Management</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
 
 <!-- ═══ LOGIN PAGE ═══ -->
-<div id="loginPage">
+<div id="loginPage" style="display:flex">
   <div class="login-card">
     <div class="login-logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 2L2 7l10 5 10-5L22 7l-10-5z"/>
         <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
       </svg>
     </div>
-    <div class="login-title">
-      <h1>EduManage Pro</h1>
-      <p>Enterprise School Management System</p>
-    </div>
+    <div class="login-title"><h1>EduManage Pro</h1><p>Enterprise School Management System</p></div>
 
     <button class="google-btn" onclick="signInWithGoogle()">
       <svg viewBox="0 0 24 24" width="20" height="20">
@@ -50,7 +47,7 @@
         </div>
         <button type="submit" class="btn btn-primary w-full" style="padding:13px;font-size:15px" id="loginBtn">Sign In</button>
       </form>
-      <div style="text-align:center;margin-top:18px">
+      <div style="text-align:center;margin-top:16px">
         <button class="btn btn-ghost btn-sm" onclick="toggleAuthPanel('signup')">Don't have an account? <b>Sign Up</b></button>
       </div>
     </div>
@@ -76,8 +73,8 @@
         </div>
         <button type="submit" class="btn btn-primary w-full" style="padding:13px;font-size:15px" id="signupBtn">Create Admin Account</button>
       </form>
-      <div style="text-align:center;margin-top:18px">
-        <button class="btn btn-ghost btn-sm" onclick="toggleAuthPanel('login')">Already have an account? <b>Sign In</b></button>
+      <div style="text-align:center;margin-top:16px">
+        <button class="btn btn-ghost btn-sm" onclick="toggleAuthPanel('login')">Already have account? <b>Sign In</b></button>
       </div>
     </div>
 
@@ -90,11 +87,12 @@
 <!-- ═══ MAIN APP ═══ -->
 <div id="appPage">
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="brand-row">
         <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2L2 7l10 5 10-5L22 7l-10-5z"/>
             <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
           </svg>
@@ -108,10 +106,10 @@
 
     <div class="school-pill" onclick="showSection('settings')">
       <div class="school-pill-label">Active School</div>
-      <div class="school-pill-name" id="sidebarSchoolName">Configure School →</div>
+      <div class="school-pill-name" id="sidebarSchoolName">Configure →</div>
     </div>
 
-    <nav id="sidebarNav">
+    <nav>
       <div class="nav-group-label">Main</div>
       <div class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')">
         <div class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
@@ -125,6 +123,10 @@
         <div class="nav-icon"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
         Fee Management
       </div>
+      <div class="nav-item" data-section="feestructure" onclick="showSection('feestructure')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        Fee Structure
+      </div>
       <div class="nav-item" data-section="attendance" onclick="showSection('attendance')">
         <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
         Attendance
@@ -133,12 +135,24 @@
         <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
         Exams
       </div>
+      <div class="nav-item" data-section="timetable" onclick="showSection('timetable')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        Timetable
+      </div>
+      <div class="nav-item" data-section="whatsapp" onclick="showSection('whatsapp')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+        Notifications
+      </div>
+
       <div class="nav-group-label">Analytics & System</div>
       <div class="nav-item" data-section="reports" onclick="showSection('reports')">
         <div class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
         Reports
       </div>
-      <!-- Admin only items injected by JS -->
+      <div class="nav-item" data-section="ai" onclick="showSection('ai')">
+        <div class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+        AI Assistant ✨
+      </div>
       <div id="adminNavItems"></div>
       <div class="nav-item" data-section="settings" onclick="showSection('settings')">
         <div class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
@@ -151,16 +165,16 @@
         <div class="user-avatar" id="userAvatar">A</div>
         <div style="flex:1;min-width:0">
           <div class="user-name" id="userName">Admin</div>
-          <div class="user-role" id="userRole">Admin</div>
+          <div class="user-role" id="userRole">Administrator</div>
         </div>
       </div>
       <div style="margin:8px 10px 4px;display:flex;align-items:center;justify-content:space-between">
-        <div id="sbStatus" class="sb-status-badge sb-connected"><div class="sb-dot"></div><span>Online</span></div>
+        <div class="sb-status-badge sb-connected"><div class="sb-dot"></div><span>Online</span></div>
         <button class="btn-icon" onclick="toggleTheme()" title="Toggle theme">
           <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
       </div>
-      <button class="btn btn-ghost btn-sm w-full" onclick="handleLogout()" style="margin-top:8px">Sign Out</button>
+      <button class="btn btn-ghost btn-sm w-full" onclick="handleLogout()" style="margin-top:6px">🚪 Sign Out</button>
     </div>
   </aside>
 
@@ -174,98 +188,182 @@
       </div>
       <div class="topbar-actions"><div id="topbarRoleBadge"></div></div>
     </header>
-    <main class="content-area" id="contentArea">
-      <!-- Sections rendered dynamically by JS -->
-    </main>
+    <main class="content-area" id="contentArea"></main>
   </div>
 </div>
 
-<!-- ═══ STUDENT MODAL ═══ -->
+<!-- ═══════════════ MODALS ═══════════════ -->
+
+<!-- STUDENT MODAL -->
 <div class="modal-overlay hidden" id="studentModal">
-  <div class="modal" style="max-width:640px">
+  <div class="modal" style="max-width:660px">
     <div class="modal-header">
       <span class="modal-title" id="studentModalTitle">Add New Student</span>
-      <button class="btn-icon" onclick="closeModal('studentModal')">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <button class="btn-icon" onclick="closeModal('studentModal')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="editStuId"/>
       <div class="grid-2">
-        <div class="form-group"><label class="form-label">Full Name *</label><input class="form-control" id="stuName" placeholder="Student's full name"/></div>
-        <div class="form-group"><label class="form-label">Class *</label><select class="form-control" id="stuClass"><option value="">Select Class</option></select></div>
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input class="form-control" id="stuName" placeholder="Student's full name"/>
+          <div class="form-error" id="stuNameErr" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Class *</label>
+          <select class="form-control" id="stuClass"><option value="">Select Class</option></select>
+          <div class="form-error" id="stuClassErr" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div>
+        </div>
       </div>
       <div class="grid-2">
-        <div class="form-group"><label class="form-label">Roll Number</label><input class="form-control" id="stuRoll" placeholder="e.g. A-01"/></div>
-        <div class="form-group"><label class="form-label">Phone (WhatsApp) *</label><input type="tel" class="form-control" id="stuPhone" placeholder="10-digit mobile number"/></div>
+        <div class="form-group">
+          <label class="form-label">Roll Number</label>
+          <input class="form-control" id="stuRoll" placeholder="e.g. A-01"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date of Birth</label>
+          <input type="date" class="form-control" id="stuDob"/>
+        </div>
       </div>
       <div class="grid-2">
-        <div class="form-group"><label class="form-label">Father's Name</label><input class="form-control" id="stuFather" placeholder="Father's full name"/></div>
-        <div class="form-group"><label class="form-label">Conveyance (₹/month)</label><input type="number" class="form-control" id="stuConveyance" placeholder="0" min="0"/></div>
+        <div class="form-group">
+          <label class="form-label">Father's Name</label>
+          <input class="form-control" id="stuFather" placeholder="Father's full name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mother's Name</label>
+          <input class="form-control" id="stuMother" placeholder="Mother's full name"/>
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Status</label>
-        <select class="form-control" id="stuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Phone (WhatsApp) *</label>
+          <input type="tel" class="form-control" id="stuPhone" placeholder="10-digit mobile"/>
+          <div class="form-error" id="stuPhoneErr" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" id="stuEmail" placeholder="optional"/>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Conveyance (₹/month)</label>
+          <input type="number" class="form-control" id="stuConveyance" placeholder="0" min="0"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bus Route</label>
+          <input class="form-control" id="stuBusRoute" placeholder="e.g. Route A"/>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="stuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Address</label>
+          <input class="form-control" id="stuAddress" placeholder="Full address"/>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('studentModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveStudent()">💾 Save Student</button>
+      <button class="btn btn-primary" onclick="saveStudent()" id="saveStuBtn">💾 Save Student</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ FEE MODAL ═══ -->
+<!-- VIEW STUDENT MODAL -->
+<div class="modal-overlay hidden" id="viewStudentModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">Student Profile</span>
+      <button class="btn-icon" onclick="closeModal('viewStudentModal')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="viewStudentBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('viewStudentModal')">Close</button>
+      <button class="btn btn-primary" id="editFromView">✏️ Edit Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEE MODAL -->
 <div class="modal-overlay hidden" id="feeModal">
   <div class="modal" style="max-width:600px">
     <div class="modal-header">
       <span class="modal-title">Record Fee Payment</span>
-      <button class="btn-icon" onclick="closeModal('feeModal')">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <button class="btn-icon" onclick="closeModal('feeModal')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="grid-2">
-        <div class="form-group"><label class="form-label">Student *</label><select class="form-control" id="feeStu"><option value="">Select student...</option></select></div>
-        <div class="form-group"><label class="form-label">Month *</label><input type="month" class="form-control" id="feeMonth"/></div>
+        <div class="form-group">
+          <label class="form-label">Student *</label>
+          <select class="form-control" id="feeStu" onchange="onFeeStudentChange()"><option value="">Select student...</option></select>
+          <div class="form-error" id="feeStuErr" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Month *</label>
+          <input type="month" class="form-control" id="feeMonth"/>
+          <div class="form-error" id="feeMonthErr" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div>
+        </div>
       </div>
       <div class="grid-2">
-        <div class="form-group"><label class="form-label">Amount (₹) *</label><input type="number" class="form-control" id="feeAmount" placeholder="Total amount" min="0"/></div>
-        <div class="form-group"><label class="form-label">Payment Mode</label>
+        <div class="form-group">
+          <label class="form-label">Payment Mode</label>
           <select class="form-control" id="feeMode">
             <option value="cash">💵 Cash</option>
             <option value="upi">📱 UPI</option>
             <option value="bank">🏦 Bank Transfer</option>
-            <option value="cheque">📄 Cheque</option>
+            <option value="cheque">📋 Cheque</option>
+            <option value="online">💳 Online</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Date</label>
+          <input type="date" class="form-control" id="feeDate"/>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Reference / Receipt No</label>
+          <input class="form-control" id="feeRef" placeholder="UPI ref, cheque no..."/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="feeStatus">
+            <option value="paid">✅ Paid</option>
+            <option value="pending">⏳ Pending</option>
+            <option value="partial">🔶 Partial</option>
           </select>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Status</label>
-        <select class="form-control" id="feeStatus">
-          <option value="paid">✅ Paid</option>
-          <option value="pending">⏳ Pending</option>
-          <option value="partial">🔶 Partial</option>
-        </select>
+        <label class="form-label">Notes</label>
+        <input class="form-control" id="feeNotes" placeholder="Optional notes..."/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="margin-bottom:10px">Fee Breakdown</label>
+        <div id="feeBreakdownGrid"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('feeModal')">Cancel</button>
-      <button class="btn btn-success" onclick="saveFee()">💾 Record Payment</button>
+      <button class="btn btn-success" onclick="saveFee()" id="saveFeeBtnModal">💾 Record Payment</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ EXAM MODAL ═══ -->
+<!-- EXAM MODAL -->
 <div class="modal-overlay hidden" id="examModal">
   <div class="modal" style="max-width:580px">
     <div class="modal-header">
-      <span class="modal-title">Create Exam</span>
-      <button class="btn-icon" onclick="closeModal('examModal')">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <span class="modal-title" id="examModalTitle">Create Exam</span>
+      <button class="btn-icon" onclick="closeModal('examModal')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="editExamId"/>
       <div class="grid-2">
         <div class="form-group"><label class="form-label">Exam Name *</label><input class="form-control" id="examName" placeholder="e.g. Half Yearly 2024"/></div>
         <div class="form-group"><label class="form-label">Subject *</label><input class="form-control" id="examSubject" placeholder="e.g. Mathematics"/></div>
@@ -278,36 +376,51 @@
         <div class="form-group"><label class="form-label">Max Marks</label><input type="number" class="form-control" id="examMaxMarks" value="100" min="1"/></div>
         <div class="form-group"><label class="form-label">Pass Marks</label><input type="number" class="form-control" id="examPassMarks" value="33" min="1"/></div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Exam Type</label>
-        <select class="form-control" id="examType">
-          <option value="written">Written</option>
-          <option value="mcq">MCQ</option>
-          <option value="practical">Practical</option>
-        </select>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Duration (minutes)</label><input type="number" class="form-control" id="examDuration" value="180" min="30"/></div>
+        <div class="form-group"><label class="form-label">Exam Type</label>
+          <select class="form-control" id="examType">
+            <option value="written">Written</option>
+            <option value="mcq">MCQ</option>
+            <option value="practical">Practical</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('examModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveExam()">💾 Create Exam</button>
+      <button class="btn btn-primary" onclick="saveExam()">💾 Save Exam</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ TEACHER MANAGEMENT MODAL (Admin only) ═══ -->
+<!-- RESULT ENTRY MODAL -->
+<div class="modal-overlay hidden" id="resultModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <span class="modal-title">Enter Exam Results</span>
+      <button class="btn-icon" onclick="closeModal('resultModal')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="resultModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('resultModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveResults()">💾 Save Results</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER MANAGEMENT MODAL -->
 <div class="modal-overlay hidden" id="teacherModal">
-  <div class="modal" style="max-width:600px">
+  <div class="modal" style="max-width:580px">
     <div class="modal-header">
       <span class="modal-title" id="teacherModalTitle">Add Team Member</span>
-      <button class="btn-icon" onclick="closeModal('teacherModal')">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <button class="btn-icon" onclick="closeModal('teacherModal')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="editMemberId"/>
       <div class="grid-2">
         <div class="form-group"><label class="form-label">Full Name *</label><input class="form-control" id="memberName" placeholder="Teacher's full name"/></div>
-        <div class="form-group"><label class="form-label">Email Address *</label><input type="email" class="form-control" id="memberEmail" placeholder="teacher@school.com"/></div>
+        <div class="form-group"><label class="form-label">Email *</label><input type="email" class="form-control" id="memberEmail" placeholder="teacher@school.com"/></div>
       </div>
       <div class="form-group">
         <label class="form-label">Role *</label>
@@ -318,13 +431,11 @@
         </select>
       </div>
       <div class="form-group" id="classAssignGroup">
-        <label class="form-label">Assign Classes <span style="color:var(--text3);font-weight:400">(select multiple)</span></label>
-        <div class="class-checkbox-grid" id="classCheckboxes">
-          <!-- Generated by JS -->
-        </div>
+        <label class="form-label">Assign Classes <span style="color:var(--text3);font-weight:400">(select one or more)</span></label>
+        <div class="class-checkbox-grid" id="classCheckboxes"></div>
         <div style="margin-top:8px;display:flex;gap:8px">
           <button class="btn btn-xs btn-outline" onclick="selectAllClasses()">Select All</button>
-          <button class="btn btn-xs btn-ghost" onclick="clearAllClasses()">Clear</button>
+          <button class="btn btn-xs btn-ghost" onclick="clearAllClasses()">Clear All</button>
         </div>
       </div>
       <div class="info-box" id="memberInfoBox" style="display:none"></div>
@@ -336,7 +447,7 @@
   </div>
 </div>
 
-<!-- ═══ CONFIRM DIALOG ═══ -->
+<!-- CONFIRM DIALOG -->
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
     <div class="confirm-icon" id="confirmIcon">⚠️</div>
@@ -349,11 +460,16 @@
   </div>
 </div>
 
+<!-- TOAST -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- Scripts -->
+<!-- ═══ SCRIPTS ═══ -->
 <script src="env.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Excel Export -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- PDF Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
