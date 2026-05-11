@@ -331,9 +331,13 @@ async function _initApp(){
     const{data:school,error:schoolErr}=await sb.from('schools').select('*').eq('id',S.schoolId).single();
     if(schoolErr)console.warn('School load failed:',schoolErr.message);
     if(school)S.settings={
-      schoolName:school.name,academicYear:school.academic_year||'2024-25',
-      phone:school.phone||'',address:school.address||'',board:school.board||'CBSE'
-    };
+  schoolName:school.name,academicYear:school.academic_year||'2024-25',
+  phone:school.phone||'',address:school.address||'',board:school.board||'CBSE',
+  startTime:school.start_time||'10:00',
+  periodDuration:school.period_duration||45,
+  breakAfterPeriod:school.break_after_period||3,
+  breakDuration:school.break_duration||20,
+};
 
     // Step 3: Update UI identity
     const name=S.user.user_metadata?.full_name||m.display_name||S.user.email.split('@')[0];
@@ -1356,10 +1360,42 @@ function _renderTimetable(){
   const tt=S.timetables[cls]||{};
   const readOnly=U.isReadOnly();
   const tbl=U.el('ttTable');if(!tbl)return;
+
+  // Dynamic periods calculate karo settings se
+  const startTime  = S.settings.startTime||'10:00';
+  const perDur     = Number(S.settings.periodDuration||45);
+  const breakAfter = Number(S.settings.breakAfterPeriod||3);
+  const breakDur   = Number(S.settings.breakDuration||20);
+  const totalPeriods = 8;
+
+  // Time calculate karo
+  const [startH,startM] = startTime.split(':').map(Number);
+  let currentMinutes = startH*60 + startM;
+  const periodTimes = [];
+  for(let i=0;i<totalPeriods;i++){
+    const h=Math.floor(currentMinutes/60);
+    const m=currentMinutes%60;
+    const ampm=h>=12?'PM':'AM';
+    const displayH=h>12?h-12:h===0?12:h;
+    periodTimes.push(`${displayH}:${m.toString().padStart(2,'0')} ${ampm}`);
+    currentMinutes+=perDur;
+    // Break add karo agar breakAfter > 0
+    if(breakAfter>0 && (i+1)===breakAfter){
+      currentMinutes+=breakDur;
+    }
+  }
+
   tbl.innerHTML=`
-    <thead><tr><th style="min-width:80px;background:var(--bg2)">Period/Time</th>${DAYS.map(d=>`<th style="min-width:120px;background:var(--bg2)">${d}</th>`).join('')}</tr></thead>
-    <tbody>${PERIODS.map((time,pi)=>`<tr>
-      <td style="font-weight:700;font-size:12px;color:var(--text3);background:var(--bg2);white-space:nowrap;padding:8px 12px">${time}</td>
+    <thead><tr>
+      <th style="min-width:90px;background:var(--bg2)">Period/Time</th>
+      ${DAYS.map(d=>`<th style="min-width:120px;background:var(--bg2)">${d}</th>`).join('')}
+    </tr></thead>
+    <tbody>${periodTimes.map((time,pi)=>`<tr>
+      <td style="font-weight:700;font-size:12px;color:var(--text3);background:var(--bg2);white-space:nowrap;padding:8px 12px">
+        <div style="font-size:11px;color:var(--text4)">Period ${pi+1}</div>
+        <div>${time}</div>
+        ${breakAfter>0&&pi===breakAfter-1?`<div style="font-size:10px;color:var(--warning);margin-top:2px">↓ ${breakDur}m break</div>`:''}
+      </td>
       ${DAYS.map((_,di)=>{
         const val=(tt[di]||{})[pi]||'';
         return `<td style="padding:4px"><input type="text" class="form-control" id="tt_${di}_${pi}" value="${U.esc(val)}" placeholder="Subject" style="font-size:12px;padding:6px 8px" ${readOnly?'disabled':''}/></td>`;
@@ -1367,7 +1403,6 @@ function _renderTimetable(){
     </tr>`).join('')}
     </tbody>`;
 }
-
 // CB-04 FIXED: Saves to Supabase timetables table
 async function _saveTimetable(){
   if(U.isReadOnly())return;
@@ -1884,6 +1919,20 @@ function renderSettingsSection(){
           </div>
         </div>
         <div class="form-group"><label class="form-label">Address</label><textarea class="form-control" id="cfgAddress" ${!isAdmin?'disabled':''}>${U.esc(S.settings.address)}</textarea></div>
+<div class="form-group"><label class="form-label">School Start Time</label>
+  <input class="form-control" type="time" id="cfgStartTime" value="${U.esc(S.settings.startTime||'10:00')}" ${!isAdmin?'disabled':''}/></div>
+<div class="form-group"><label class="form-label">Period Duration (minutes)</label>
+  <select class="form-control" id="cfgPeriodDur" ${!isAdmin?'disabled':''}>
+    ${[30,35,40,45,50,60].map(m=>`<option ${(S.settings.periodDuration||45)==m?'selected':''}>${m}</option>`).join('')}
+  </select></div>
+<div class="form-group"><label class="form-label">Break After Period (0 = no break)</label>
+  <select class="form-control" id="cfgBreakAfter" ${!isAdmin?'disabled':''}>
+    ${[0,1,2,3,4,5,6].map(n=>`<option ${(S.settings.breakAfterPeriod||3)==n?'selected':''}>${n===0?'No Break':'After Period '+n}</option>`).join('')}
+  </select></div>
+<div class="form-group"><label class="form-label">Break Duration (minutes)</label>
+  <select class="form-control" id="cfgBreakDur" ${!isAdmin?'disabled':''}>
+    ${[10,15,20,25,30].map(m=>`<option ${(S.settings.breakDuration||20)==m?'selected':''}>${m} min</option>`).join('')}
+  </select></div>
         ${isAdmin?`<button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>`:
           `<p style="font-size:13px;color:var(--text3);margin-top:4px">⚠️ Only admins can edit school settings.</p>`}
       </div></div>
@@ -1909,10 +1958,15 @@ async function saveSettings(){
   const phone  =(U.el('cfgPhone')?.value||'').trim();
   const board  = U.el('cfgBoard')?.value||'CBSE';
   const address=(U.el('cfgAddress')?.value||'').trim();
+const startTime     = U.el('cfgStartTime')?.value||'10:00';
+const periodDuration= Number(U.el('cfgPeriodDur')?.value||45);
+const breakAfterPeriod=Number(U.el('cfgBreakAfter')?.value||3);
+const breakDuration = Number(U.el('cfgBreakDur')?.value||20);
   try{
     const{error}=await sb.from('schools').update({name,academic_year:year,phone,board,address}).eq('id',S.schoolId);
     if(error)throw error;
-    S.settings={schoolName:name,academicYear:year,phone,board,address};
+    S.settings={schoolName:name,academicYear:year,phone,board,address,
+  startTime,periodDuration,breakAfterPeriod,breakDuration};
     U.setText('sidebarSchoolName',name);
     Toast.success('Settings Saved ✅');
   }catch(err){Toast.error('Save Failed',err.message);}
