@@ -241,5 +241,25 @@ WHERE tablename IN (
   'attendance_records','exams','exam_results','timetables','alerts'
 )
 ORDER BY tablename;
+CREATE OR REPLACE FUNCTION get_user_id_by_email(email_input TEXT)
+RETURNS UUID
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  user_uuid UUID;
+BEGIN
+  SELECT id INTO user_uuid
+  FROM auth.users
+  WHERE email = email_input
+  LIMIT 1;
+  
+  RETURN user_uuid;
+END;
+$$;
 
+-- Test karo
+SELECT get_user_id_by_email('teacher-email-yahan-daalo@gmail.com');
+
+SELECT 'Function Ready ✅' AS status;
 SELECT 'DATABASE SETUP COMPLETE ✅' AS status;
