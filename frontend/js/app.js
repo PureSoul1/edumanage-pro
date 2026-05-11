@@ -1688,45 +1688,73 @@ async function saveMember(){
   const email  =U.el('memberEmail').value.trim();
   const role   =U.el('memberRole').value;
   const classes=role==='teacher'?Array.from(document.querySelectorAll('.cls-chk:checked')).map(c=>c.value):null;
+
   if(!name){Toast.warning('Enter member name');return;}
   if(!memberId&&!email){Toast.warning('Enter email address');return;}
   if(role==='teacher'&&(!classes||!classes.length)){Toast.warning('Assign at least one class');return;}
+
   const btn=U.qs('#teacherModal .btn-primary');
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Saving...';}
+
   try{
     if(memberId){
-      // Update existing membership
-      const{error}=await sb.from('school_members').update({role,display_name:name,assigned_classes:classes}).eq('id',memberId).eq('school_id',S.schoolId);
+      // Existing member update
+      const{error}=await sb.from('school_members')
+        .update({role,display_name:name,assigned_classes:classes})
+        .eq('id',memberId).eq('school_id',S.schoolId);
       if(error)throw error;
       Toast.success('Member Updated ✅',name);
+
     }else{
-      // Find user by email in auth (via members table lookup)
-      const{data:existingUser,error:lookupErr}=await sb.from('school_members')
-        .select('user_id').eq('email',email).eq('school_id',S.schoolId).maybeSingle();
-      if(!lookupErr&&existingUser){
-        // Update their existing membership
-        const{error}=await sb.from('school_members').update({role,display_name:name,assigned_classes:classes,email}).eq('user_id',existingUser.user_id).eq('school_id',S.schoolId);
-        if(error)throw error;
-        Toast.success('Member Updated ✅',name);
-      }else{
-        // Create new placeholder membership (user must accept by logging in)
-        // We need their user_id — only possible if they signed up
-        // Show clear instructions
-        Toast.info(
-          'Next Step Required',
-          `Ask ${email} to:\n1. Go to your app URL\n2. Click "Sign Up"\n3. Use email: ${email}\nThen come back here and edit their role.`
+      // Step 1: Supabase function se user_id dhundho by email
+      const{data:userId,error:fnErr}=await sb.rpc('get_user_id_by_email',{email_input:email});
+
+      if(fnErr||!userId){
+        Toast.warning(
+          'User Not Found 🔍',
+          `"${email}" ne abhi Sign Up nahi kiya. Unhe pehle app pe Sign Up karne ko kaho, phir yahan add karo.`
         );
-        closeModal('teacherModal');
         if(btn){btn.disabled=false;btn.innerHTML='💾 Save Member';}
         return;
       }
+
+      // Step 2: Already member hai toh update karo
+      const{data:existing}=await sb.from('school_members')
+        .select('id').eq('user_id',userId).eq('school_id',S.schoolId).maybeSingle();
+
+      if(existing){
+        const{error}=await sb.from('school_members')
+          .update({role,display_name:name,assigned_classes:classes,email})
+          .eq('id',existing.id).eq('school_id',S.schoolId);
+        if(error)throw error;
+        Toast.success('Member Updated ✅',name);
+      }else{
+        // Step 3: Naya member insert karo
+        const{error}=await sb.from('school_members').insert({
+          school_id:S.schoolId,
+          user_id:userId,
+          role,
+          display_name:name,
+          email,
+          assigned_classes:classes,
+          accepted_at:new Date().toISOString()
+        });
+        if(error)throw error;
+        Toast.success('Teacher Added ✅',`${name} ab "${role}" role mein add ho gaya!`);
+      }
     }
+
     U.el('memberEmail').disabled=false;
     closeModal('teacherModal');
     await _loadMembers();
     _renderTeamRows();
-  }catch(err){Toast.error('Save Failed',err.message);console.error(err);}
-  finally{if(btn){btn.disabled=false;btn.innerHTML='💾 Save Member';}}
+
+  }catch(err){
+    Toast.error('Save Failed',err.message);
+    console.error('saveMember:',err);
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='💾 Save Member';}
+  }
 }
 
 async function _deleteMember(id,name){
@@ -1738,9 +1766,7 @@ async function _deleteMember(id,name){
     Toast.warning('Removed',name+' removed');
     await _loadMembers();_renderTeamRows();
   }catch(err){Toast.error('Failed',err.message);}
-}
-
-// ══════════════════════════════════════════════════════
+}// ══════════════════════════════════════════════════════
 // AI ASSISTANT
 // ══════════════════════════════════════════════════════
 function renderAISection(){
