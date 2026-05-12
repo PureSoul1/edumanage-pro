@@ -1361,77 +1361,93 @@ function _renderTimetable(){
   const readOnly=U.isReadOnly();
   const tbl=U.el('ttTable');if(!tbl)return;
 
-  // Dynamic periods calculate karo settings se
-  const startTime  = S.settings.startTime||'10:00';
-  const perDur     = Number(S.settings.periodDuration||45);
-  const breakAfter = Number(S.settings.breakAfterPeriod||3);
-  const breakDur   = Number(S.settings.breakDuration||20);
-  const totalPeriods = 8;
+  // Default timings — editable
+  const defaultTimes=[
+    '8:00 AM','8:45 AM','9:30 AM','10:30 AM',
+    '11:15 AM','12:00 PM','12:45 PM','1:30 PM'
+  ];
 
-  // Time calculate karo
-  const [startH,startM] = startTime.split(':').map(Number);
-  let currentMinutes = startH*60 + startM;
-  const periodTimes = [];
-  for(let i=0;i<totalPeriods;i++){
-    const h=Math.floor(currentMinutes/60);
-    const m=currentMinutes%60;
-    const ampm=h>=12?'PM':'AM';
-    const displayH=h>12?h-12:h===0?12:h;
-    periodTimes.push(`${displayH}:${m.toString().padStart(2,'0')} ${ampm}`);
-    currentMinutes+=perDur;
-    // Break add karo agar breakAfter > 0
-    if(breakAfter>0 && (i+1)===breakAfter){
-      currentMinutes+=breakDur;
-    }
-  }
+  // Saved timings load karo localStorage se
+  const savedTimes=U.lsGet('em_tt_times_'+S.schoolId+'_'+cls, defaultTimes);
 
   tbl.innerHTML=`
-    <thead><tr>
-      <th style="min-width:90px;background:var(--bg2)">Period/Time</th>
-      ${DAYS.map(d=>`<th style="min-width:120px;background:var(--bg2)">${d}</th>`).join('')}
-    </tr></thead>
-    <tbody>${periodTimes.map((time,pi)=>`<tr>
-      <td style="font-weight:700;font-size:12px;color:var(--text3);background:var(--bg2);white-space:nowrap;padding:8px 12px">
-        <div style="font-size:11px;color:var(--text4)">Period ${pi+1}</div>
-        <div>${time}</div>
-        ${breakAfter>0&&pi===breakAfter-1?`<div style="font-size:10px;color:var(--warning);margin-top:2px">↓ ${breakDur}m break</div>`:''}
-      </td>
-      ${DAYS.map((_,di)=>{
-        const val=(tt[di]||{})[pi]||'';
-        return `<td style="padding:4px"><input type="text" class="form-control" id="tt_${di}_${pi}" value="${U.esc(val)}" placeholder="Subject" style="font-size:12px;padding:6px 8px" ${readOnly?'disabled':''}/></td>`;
-      }).join('')}
-    </tr>`).join('')}
+    <thead>
+      <tr>
+        <th style="min-width:130px;background:var(--bg2)">
+          Period / Time
+          ${!readOnly?`<div style="font-size:10px;color:var(--primary);font-weight:500;margin-top:2px">✏️ Click time to edit</div>`:''}
+        </th>
+        ${DAYS.map(d=>`<th style="min-width:120px;background:var(--bg2)">${d}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${Array.from({length:8},(_,pi)=>`
+        <tr>
+          <td style="background:var(--bg2);padding:6px 10px;white-space:nowrap">
+            <div style="font-size:10px;color:var(--text4);font-weight:600">Period ${pi+1}</div>
+            ${!readOnly
+              ? `<input type="text" 
+                  id="tt_time_${pi}" 
+                  value="${U.esc(savedTimes[pi]||defaultTimes[pi]||'')}" 
+                  placeholder="e.g. 10:00 AM"
+                  style="font-size:12px;font-weight:700;color:var(--primary);background:transparent;border:none;border-bottom:1px dashed var(--primary);width:100px;padding:2px 4px;outline:none;cursor:text"
+                  title="Click to edit time"
+                />`
+              : `<div style="font-size:12px;font-weight:700;color:var(--primary)">${U.esc(savedTimes[pi]||defaultTimes[pi]||'')}</div>`
+            }
+          </td>
+          ${DAYS.map((_,di)=>{
+            const val=(tt[di]||{})[pi]||'';
+            return `<td style="padding:4px">
+              <input type="text" 
+                class="form-control" 
+                id="tt_${di}_${pi}" 
+                value="${U.esc(val)}" 
+                placeholder="Subject" 
+                style="font-size:12px;padding:6px 8px" 
+                ${readOnly?'disabled':''}
+              />
+            </td>`;
+          }).join('')}
+        </tr>`).join('')}
     </tbody>`;
-}
-// CB-04 FIXED: Saves to Supabase timetables table
+}// CB-04 FIXED: Saves to Supabase timetables table
 async function _saveTimetable(){
   if(U.isReadOnly())return;
   const cls=U.el('ttClass')?.value||'1';
   const btn=U.qs('.section-header .btn-primary');
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Saving...';}
-  // Build upserts
+
+  // Timings save karo localStorage mein
+  const times=Array.from({length:8},(_,pi)=>U.el(`tt_time_${pi}`)?.value.trim()||'');
+  U.lsSet('em_tt_times_'+S.schoolId+'_'+cls, times);
+
+  // Subjects save karo DB mein
   const upserts=[];
   DAYS.forEach((_,di)=>{
     PERIODS.forEach((_,pi)=>{
       const v=U.el(`tt_${di}_${pi}`)?.value.trim()||'';
-      if(v)upserts.push({school_id:S.schoolId,class_name:cls,day_index:di,period_index:pi,subject:v});
+      if(v)upserts.push({
+        school_id:S.schoolId,class_name:cls,
+        day_index:di,period_index:pi,subject:v
+      });
     });
   });
+
   try{
-    // Delete existing timetable for this class first
     await sb.from('timetables').delete().eq('school_id',S.schoolId).eq('class_name',cls);
-    // Insert new entries
     if(upserts.length){
       const{error}=await sb.from('timetables').insert(upserts);
       if(error)throw error;
     }
-    // Update local state
     await _loadTimetables();
-    Toast.success('Timetable Saved to Database ✅',`Class ${cls}`);
-  }catch(err){Toast.error('Save Failed',err.message);console.error(err);}
-  finally{if(btn){btn.disabled=false;btn.innerHTML='💾 Save to DB';}}
+    Toast.success('Timetable Saved ✅',`Class ${cls} — timings & subjects saved`);
+  }catch(err){
+    Toast.error('Save Failed',err.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='💾 Save to DB';}
+  }
 }
-
 // ══════════════════════════════════════════════════════
 // WHATSAPP / ALERTS
 // ══════════════════════════════════════════════════════
