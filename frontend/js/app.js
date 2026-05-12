@@ -1954,6 +1954,10 @@ function renderSettingsSection(){
           <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
             <button class="btn btn-ghost" onclick="handleLogout()">🚪 Sign Out</button>
             <button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙 Toggle Theme</button>
+<div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+  <div style="font-size:11px;color:var(--text4)">Developed by</div>
+  <div style="font-size:13px;font-weight:700;color:var(--text3);margin-top:3px">🦊 Agentic Fox Labs</div>
+</div>
           </div>
         </div>
       </div>
