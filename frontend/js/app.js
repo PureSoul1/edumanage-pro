@@ -1971,7 +1971,17 @@ const periodDuration= Number(U.el('cfgPeriodDur')?.value||45);
 const breakAfterPeriod=Number(U.el('cfgBreakAfter')?.value||3);
 const breakDuration = Number(U.el('cfgBreakDur')?.value||20);
   try{
-    const{error}=await sb.from('schools').update({name,academic_year:year,phone,board,address}).eq('id',S.schoolId);
+    const{error}=await sb.from('schools').update({
+  name,
+  academic_year:year,
+  phone,
+  board,
+  address,
+  start_time:startTime,
+  period_duration:periodDuration,
+  break_after_period:breakAfterPeriod,
+  break_duration:breakDuration
+}).eq('id',S.schoolId);
     if(error)throw error;
     S.settings={schoolName:name,academicYear:year,phone,board,address,
   startTime,periodDuration,breakAfterPeriod,breakDuration};
