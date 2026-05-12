@@ -1361,94 +1361,55 @@ function _renderTimetable(){
   const readOnly=U.isReadOnly();
   const tbl=U.el('ttTable');if(!tbl)return;
 
-  // Default timings — editable
-  const defaultTimes=[
-    '8:00 AM','8:45 AM','9:30 AM','10:30 AM',
-    '11:15 AM','12:00 PM','12:45 PM','1:30 PM'
-  ];
-
-  // Saved timings load karo localStorage se
+  const defaultTimes=['8:00 AM','8:45 AM','9:30 AM','10:30 AM','11:15 AM','12:00 PM','12:45 PM','1:30 PM'];
   const savedTimes=U.lsGet('em_tt_times_'+S.schoolId+'_'+cls, defaultTimes);
+  const breakAfter=Number(S.settings.breakAfterPeriod||3);
+  const breakDur  =Number(S.settings.breakDuration||20);
+
+  // Rows banao — periods + break row
+  let rows='';
+  for(let pi=0;pi<8;pi++){
+    rows+=`<tr>
+      <td style="background:var(--bg2);padding:6px 10px;white-space:nowrap;min-width:130px">
+        <div style="font-size:10px;color:var(--text4);font-weight:600">Period ${pi+1}</div>
+        ${!readOnly
+          ?`<input type="text" id="tt_time_${pi}" value="${U.esc(savedTimes[pi]||defaultTimes[pi]||'')}" placeholder="e.g. 10:00 AM"
+              style="font-size:12px;font-weight:700;color:var(--primary);background:transparent;border:none;border-bottom:1.5px dashed var(--primary);width:110px;padding:2px 4px;outline:none" title="Click to edit time"/>`
+          :`<div style="font-size:12px;font-weight:700;color:var(--primary)">${U.esc(savedTimes[pi]||defaultTimes[pi]||'')}</div>`
+        }
+      </td>
+      ${DAYS.map((_,di)=>{
+        const val=(tt[di]||{})[pi]||'';
+        return `<td style="padding:4px"><input type="text" class="form-control" id="tt_${di}_${pi}" value="${U.esc(val)}" placeholder="Subject" style="font-size:12px;padding:6px 8px" ${readOnly?'disabled':''}/></td>`;
+      }).join('')}
+    </tr>`;
+
+    // Break row insert karo after breakAfter period
+    if(breakAfter>0 && pi===breakAfter-1){
+      rows+=`<tr>
+        <td colspan="${DAYS.length+1}" style="padding:0">
+          <div style="background:linear-gradient(135deg,var(--warning-bg),rgba(245,158,11,.05));border-top:2px dashed var(--warning);border-bottom:2px dashed var(--warning);padding:8px 16px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:18px">☕</span>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--warning)">BREAK TIME — ${breakDur} Minutes</div>
+              <div style="font-size:11px;color:var(--text3)">After Period ${breakAfter} · Students & Teachers rest</div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+    }
+  }
 
   tbl.innerHTML=`
-    <thead>
-      <tr>
-        <th style="min-width:130px;background:var(--bg2)">
-          Period / Time
-          ${!readOnly?`<div style="font-size:10px;color:var(--primary);font-weight:500;margin-top:2px">✏️ Click time to edit</div>`:''}
-        </th>
-        ${DAYS.map(d=>`<th style="min-width:120px;background:var(--bg2)">${d}</th>`).join('')}
-      </tr>
-    </thead>
-    <tbody>
-      ${Array.from({length:8},(_,pi)=>`
-        <tr>
-          <td style="background:var(--bg2);padding:6px 10px;white-space:nowrap">
-            <div style="font-size:10px;color:var(--text4);font-weight:600">Period ${pi+1}</div>
-            ${!readOnly
-              ? `<input type="text" 
-                  id="tt_time_${pi}" 
-                  value="${U.esc(savedTimes[pi]||defaultTimes[pi]||'')}" 
-                  placeholder="e.g. 10:00 AM"
-                  style="font-size:12px;font-weight:700;color:var(--primary);background:transparent;border:none;border-bottom:1px dashed var(--primary);width:100px;padding:2px 4px;outline:none;cursor:text"
-                  title="Click to edit time"
-                />`
-              : `<div style="font-size:12px;font-weight:700;color:var(--primary)">${U.esc(savedTimes[pi]||defaultTimes[pi]||'')}</div>`
-            }
-          </td>
-          ${DAYS.map((_,di)=>{
-            const val=(tt[di]||{})[pi]||'';
-            return `<td style="padding:4px">
-              <input type="text" 
-                class="form-control" 
-                id="tt_${di}_${pi}" 
-                value="${U.esc(val)}" 
-                placeholder="Subject" 
-                style="font-size:12px;padding:6px 8px" 
-                ${readOnly?'disabled':''}
-              />
-            </td>`;
-          }).join('')}
-        </tr>`).join('')}
-    </tbody>`;
-}// CB-04 FIXED: Saves to Supabase timetables table
-async function _saveTimetable(){
-  if(U.isReadOnly())return;
-  const cls=U.el('ttClass')?.value||'1';
-  const btn=U.qs('.section-header .btn-primary');
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Saving...';}
-
-  // Timings save karo localStorage mein
-  const times=Array.from({length:8},(_,pi)=>U.el(`tt_time_${pi}`)?.value.trim()||'');
-  U.lsSet('em_tt_times_'+S.schoolId+'_'+cls, times);
-
-  // Subjects save karo DB mein
-  const upserts=[];
-  DAYS.forEach((_,di)=>{
-    PERIODS.forEach((_,pi)=>{
-      const v=U.el(`tt_${di}_${pi}`)?.value.trim()||'';
-      if(v)upserts.push({
-        school_id:S.schoolId,class_name:cls,
-        day_index:di,period_index:pi,subject:v
-      });
-    });
-  });
-
-  try{
-    await sb.from('timetables').delete().eq('school_id',S.schoolId).eq('class_name',cls);
-    if(upserts.length){
-      const{error}=await sb.from('timetables').insert(upserts);
-      if(error)throw error;
-    }
-    await _loadTimetables();
-    Toast.success('Timetable Saved ✅',`Class ${cls} — timings & subjects saved`);
-  }catch(err){
-    Toast.error('Save Failed',err.message);
-  }finally{
-    if(btn){btn.disabled=false;btn.innerHTML='💾 Save to DB';}
-  }
-}
-// ══════════════════════════════════════════════════════
+    <thead><tr>
+      <th style="min-width:130px;background:var(--bg2)">
+        Period / Time
+        ${!readOnly?`<div style="font-size:10px;color:var(--primary);font-weight:500;margin-top:2px">✏️ Click time to edit</div>`:''}
+      </th>
+      ${DAYS.map(d=>`<th style="min-width:120px;background:var(--bg2)">${d}</th>`).join('')}
+    </tr></thead>
+    <tbody>${rows}</tbody>`;
+}// ══════════════════════════════════════════════════════
 // WHATSAPP / ALERTS
 // ══════════════════════════════════════════════════════
 function renderWhatsappSection(){
@@ -1920,53 +1881,84 @@ function _toggleVoice(){
 // ══════════════════════════════════════════════════════
 function renderSettingsSection(){
   const isAdmin=S.role==='admin';
+  const breakAfterVal=Number(S.settings.breakAfterPeriod||3);
+  const periodDurVal =Number(S.settings.periodDuration||45);
+  const breakDurVal  =Number(S.settings.breakDuration||20);
+
   U.el('contentArea').innerHTML=`
     <div style="animation:fadeIn .2s ease">
       <div class="section-title" style="margin-bottom:20px">Settings</div>
-      <div class="card mb-4"><div class="card-header"><span class="card-title">🏫 School Details</span>${!isAdmin?'<span class="badge badge-gray">View Only</span>':''}</div><div class="card-body">
-        <div class="grid-2">
-          <div class="form-group"><label class="form-label">School Name</label><input class="form-control" id="cfgName" value="${U.esc(S.settings.schoolName)}" ${!isAdmin?'disabled':''}/></div>
-          <div class="form-group"><label class="form-label">Academic Year</label><input class="form-control" id="cfgYear" value="${U.esc(S.settings.academicYear)}" ${!isAdmin?'disabled':''}/></div>
-          <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="cfgPhone" value="${U.esc(S.settings.phone)}" ${!isAdmin?'disabled':''}/></div>
-          <div class="form-group"><label class="form-label">Board</label>
-            <select class="form-control" id="cfgBoard" ${!isAdmin?'disabled':''}>
-              ${['CBSE','ICSE','UP Board','MP Board','Bihar Board','Other'].map(b=>`<option ${S.settings.board===b?'selected':''}>${b}</option>`).join('')}
-            </select>
+      <div class="card mb-4">
+        <div class="card-header">
+          <span class="card-title">🏫 School Details</span>
+          ${!isAdmin?'<span class="badge badge-gray">View Only</span>':''}
+        </div>
+        <div class="card-body">
+          <div class="grid-2">
+            <div class="form-group"><label class="form-label">School Name</label><input class="form-control" id="cfgName" value="${U.esc(S.settings.schoolName)}" ${!isAdmin?'disabled':''}/></div>
+            <div class="form-group"><label class="form-label">Academic Year</label><input class="form-control" id="cfgYear" value="${U.esc(S.settings.academicYear)}" ${!isAdmin?'disabled':''}/></div>
+            <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="cfgPhone" value="${U.esc(S.settings.phone)}" ${!isAdmin?'disabled':''}/></div>
+            <div class="form-group"><label class="form-label">Board</label>
+              <select class="form-control" id="cfgBoard" ${!isAdmin?'disabled':''}>
+                ${['CBSE','ICSE','UP Board','MP Board','Bihar Board','Other'].map(b=>`<option value="${b}" ${S.settings.board===b?'selected':''}>${b}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">Address</label><textarea class="form-control" id="cfgAddress" ${!isAdmin?'disabled':''}>${U.esc(S.settings.address)}</textarea></div>
+
+          <div style="border-top:1px solid var(--border);margin:20px 0 16px;padding-top:16px">
+            <div style="font-size:14px;font-weight:700;color:var(--text1);margin-bottom:14px">🕐 School Timing Settings</div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">School Start Time</label>
+                <input class="form-control" type="time" id="cfgStartTime" value="${U.esc(S.settings.startTime||'10:00')}" ${!isAdmin?'disabled':''}/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Period Duration</label>
+                <select class="form-control" id="cfgPeriodDur" ${!isAdmin?'disabled':''}>
+                  ${[30,35,40,45,50,60].map(m=>`<option value="${m}" ${periodDurVal===m?'selected':''}>${m} minutes</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Break After Period</label>
+                <select class="form-control" id="cfgBreakAfter" ${!isAdmin?'disabled':''}>
+                  <option value="0" ${breakAfterVal===0?'selected':''}>No Break</option>
+                  ${[1,2,3,4,5,6,7,8].map(n=>`<option value="${n}" ${breakAfterVal===n?'selected':''}>After Period ${n}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Break Duration</label>
+                <select class="form-control" id="cfgBreakDur" ${!isAdmin?'disabled':''}>
+                  ${[10,15,20,25,30,45,60].map(m=>`<option value="${m}" ${breakDurVal===m?'selected':''}>${m} minutes</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div style="background:var(--primary-bg);border:1px solid var(--primary-border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--primary);margin-top:4px">
+              💡 Save karne ke baad Timetable mein timings automatically update ho jaayengi
+            </div>
+          </div>
+
+          ${isAdmin?`<button class="btn btn-primary" onclick="saveSettings()" style="margin-top:8px">💾 Save Settings</button>`:
+            `<p style="font-size:13px;color:var(--text3);margin-top:4px">⚠️ Only admins can edit school settings.</p>`}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">👤 Your Account</span></div>
+        <div class="card-body">
+          <div class="grid-2">
+            <div class="form-group"><label class="form-label">Email</label><input class="form-control" value="${U.esc(S.user?.email||'')}" disabled/></div>
+            <div class="form-group"><label class="form-label">Role</label><input class="form-control" value="${{admin:'Administrator',teacher:'Teacher',viewer:'Viewer'}[S.role]||S.role}" disabled/></div>
+            ${S.role==='teacher'&&S.assignedClasses?.length?`<div class="form-group"><label class="form-label">Assigned Classes</label><input class="form-control" value="${S.assignedClasses.map(c=>'Class '+c).join(', ')}" disabled/></div>`:''}
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+            <button class="btn btn-ghost" onclick="handleLogout()">🚪 Sign Out</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙 Toggle Theme</button>
           </div>
         </div>
-        <div class="form-group"><label class="form-label">Address</label><textarea class="form-control" id="cfgAddress" ${!isAdmin?'disabled':''}>${U.esc(S.settings.address)}</textarea></div>
-<div class="form-group"><label class="form-label">School Start Time</label>
-  <input class="form-control" type="time" id="cfgStartTime" value="${U.esc(S.settings.startTime||'10:00')}" ${!isAdmin?'disabled':''}/></div>
-<div class="form-group"><label class="form-label">Period Duration (minutes)</label>
-  <select class="form-control" id="cfgPeriodDur" ${!isAdmin?'disabled':''}>
-    ${[30,35,40,45,50,60].map(m=>`<option ${(S.settings.periodDuration||45)==m?'selected':''}>${m}</option>`).join('')}
-  </select></div>
-<div class="form-group"><label class="form-label">Break After Period (0 = no break)</label>
-  <select class="form-control" id="cfgBreakAfter" ${!isAdmin?'disabled':''}>
-    ${[0,1,2,3,4,5,6].map(n=>`<option ${(S.settings.breakAfterPeriod||3)==n?'selected':''}>${n===0?'No Break':'After Period '+n}</option>`).join('')}
-  </select></div>
-<div class="form-group"><label class="form-label">Break Duration (minutes)</label>
-  <select class="form-control" id="cfgBreakDur" ${!isAdmin?'disabled':''}>
-    ${[10,15,20,25,30].map(m=>`<option ${(S.settings.breakDuration||20)==m?'selected':''}>${m} min</option>`).join('')}
-  </select></div>
-        ${isAdmin?`<button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>`:
-          `<p style="font-size:13px;color:var(--text3);margin-top:4px">⚠️ Only admins can edit school settings.</p>`}
-      </div></div>
-      <div class="card"><div class="card-header"><span class="card-title">👤 Your Account</span></div><div class="card-body">
-        <div class="grid-2">
-          <div class="form-group"><label class="form-label">Email</label><input class="form-control" value="${U.esc(S.user?.email||'')}" disabled/></div>
-          <div class="form-group"><label class="form-label">Role</label><input class="form-control" value="${{admin:'Administrator',teacher:'Teacher',viewer:'Viewer'}[S.role]||S.role}" disabled/></div>
-          ${S.role==='teacher'&&S.assignedClasses?.length?`<div class="form-group"><label class="form-label">Assigned Classes</label><input class="form-control" value="${S.assignedClasses.map(c=>'Class '+c).join(', ')}" disabled/></div>`:''}
-        </div>
-        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-          <button class="btn btn-ghost" onclick="handleLogout()">🚪 Sign Out</button>
-          <button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙 Toggle Theme</button>
-        </div>
-      </div></div>
+      </div>
     </div>`;
-}
-
-async function saveSettings(){
+}async function saveSettings(){
   if(S.role!=='admin'){Toast.error('Admin Only');return;}
   const name   =(U.el('cfgName')?.value||'').trim();
   if(!name){Toast.warning('School name is required');return;}
