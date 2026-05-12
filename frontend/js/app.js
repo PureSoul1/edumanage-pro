@@ -1984,6 +1984,30 @@ const breakDuration = Number(U.el('cfgBreakDur')?.value||20);
     S.settings={schoolName:name,academicYear:year,phone,board,address,
   startTime,periodDuration,breakAfterPeriod,breakDuration};
     U.setText('sidebarSchoolName',name);
+// Timetable timings auto-calculate karo settings se
+const [sh, sm] = startTime.split(':').map(Number);
+let mins = sh * 60 + sm;
+Array.from({length:8}, (_, i) => {
+  const h = Math.floor(mins/60);
+  const m = mins % 60;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const dh = h > 12 ? h-12 : h === 0 ? 12 : h;
+  const timeStr = `${dh}:${m.toString().padStart(2,'0')} ${ampm}`;
+  // Har class ki timing update karo localStorage mein
+  Array.from({length:12}, (_, ci) => {
+    const cls = String(ci+1);
+    const saved = U.lsGet('em_tt_times_'+S.schoolId+'_'+cls, []);
+    saved[i] = timeStr;
+    U.lsSet('em_tt_times_'+S.schoolId+'_'+cls, saved);
+  });
+  mins += periodDuration;
+  // Break add karo
+  if(breakAfterPeriod > 0 && (i+1) === breakAfterPeriod) {
+    mins += breakDuration;
+  }
+});
+// Agar timetable section open hai toh refresh karo
+if(S.currentSection === 'timetable') _renderTimetable();
     Toast.success('Settings Saved ✅');
   }catch(err){Toast.error('Save Failed',err.message);}
 }
