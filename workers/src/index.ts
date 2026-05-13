@@ -261,3 +261,36 @@ export default {
     }
   }
 };
+// Simple in-memory rate limiter
+const rateLimitMap = new Map<string, {count: number, resetAt: number}>();
+
+function checkRateLimit(key: string, limit: number = 100, windowMs: number = 60000): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+    return true; // allowed
+  }
+  
+  if (entry.count >= limit) return false; // blocked
+  
+  entry.count++;
+  return true; // allowed
+}
+
+// fetch() handler mein use karo:
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    
+    // 100 requests per minute per IP
+    if (!checkRateLimit(ip, 100, 60000)) {
+      return new Response(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': '60' }
+      });
+    }
+    // ... rest of handler
+  }
+};
